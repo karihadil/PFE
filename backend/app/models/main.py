@@ -1,3 +1,4 @@
+from cProfile import label
 from ipaddress import ip_address
 import numpy as np
 import pandas as pd
@@ -12,6 +13,7 @@ import re
 from ipaddress import ip_address
 from urllib.parse import urlparse
 import tldextract
+import seaborn as sns
 df = pd.read_csv('C:\\Users\\DELL\\OneDrive\\Bureau\\PFE\\backend\\app\\models\\filtered_dataset.csv')
 df['url_length'] = df['url'].apply(lambda x: len(str(x)))
 def count_special_chars(url):
@@ -50,6 +52,23 @@ print(df["status"].value_counts())
 print(df.head())
 encoder=LabelEncoder()
 df["status"]=encoder.fit_transform(df["status"]) #0 legit 1 phishing
-label_mapping = {index: label for index, label in enumerate(encoder.classes_)}
-print(label_mapping)
 print(df.head())
+y=df["status"].value_counts()
+labels = ["Legitimate", "Phishing"]
+plt.figure(figsize=(10,5))
+colors = ["green","red"]
+plt.bar(labels,y,color=colors)
+plt.title("Phishing vs Legitimate websites")
+plt.show()
+x1=df["https"].value_counts()
+labels = ["HTTP", "HTTPS"]
+plt.figure(figsize=(10,5))
+colors = ["pink","purple"]
+plt.barh(labels,x1,color=colors)
+plt.title("HTTP vs HTTPS")
+plt.show()
+sns.histplot(["url_length"], kde=True, bins=30, color="blue")
+plt.xlabel("URL Length")
+plt.ylabel("Frequency")
+plt.title("URL Length Distribution")
+plt.show()
