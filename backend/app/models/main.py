@@ -7,7 +7,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 import re
 from ipaddress import ip_address
@@ -43,4 +42,14 @@ def count_subdomains(url):
 
 df["sub_nb"]=df["url"].apply(count_subdomains)
 df = df[[col for col in df.columns if col != "status"] + ["status"]]
+df.info()
+print(df.describe())
+print(df.isnull().sum())
+df.dropna(inplace=True)
+print(df["status"].value_counts())
+print(df.head())
+encoder=LabelEncoder()
+df["status"]=encoder.fit_transform(df["status"]) #0 legit 1 phishing
+label_mapping = {index: label for index, label in enumerate(encoder.classes_)}
+print(label_mapping)
 print(df.head())
