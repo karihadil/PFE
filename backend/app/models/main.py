@@ -67,8 +67,62 @@ colors = ["pink","purple"]
 plt.barh(labels,x1,color=colors)
 plt.title("HTTP vs HTTPS")
 plt.show()
-sns.histplot(["url_length"], kde=True, bins=30, color="blue")
-plt.xlabel("URL Length")
-plt.ylabel("Frequency")
-plt.title("URL Length Distribution")
+x2=df["is_ip"].value_counts()
+labels = ["Not IP", "IP"]
+plt.figure(figsize=(10,5))
+colors = ["orange","blue"]
+plt.bar(labels,x2,color=colors)
+plt.title("IP vs Not IP")
+plt.show()
+phishing_keywords = ["login", "secure", "bank", "update", "verify", "account", "password"]
+
+def contains_phishing_words(url):
+    return any(word in url.lower() for word in phishing_keywords)
+
+df["contains_phishing_words"] = df["url"].apply(contains_phishing_words).astype(int)
+print(df["contains_phishing_words"].head())
+df["contains_phishing_words"].value_counts()
+
+def count_digits_in_domain(url):
+    domain = urlparse(url).netloc  # Extract domain
+    return sum(c.isdigit() for c in domain)
+df["num_digits_in_domain"] = df["url"].apply(count_digits_in_domain)
+X = df.drop(columns=["status"]) # Features
+y = df["status"]# Target variable
+
+from collections import Counter
+import math
+
+def calculate_entropy(url):
+    counter = Counter(url)  # Count occurrences of each character
+    length = len(url)
+    entropy = -sum((count/length) * math.log2(count/length) for count in counter.values())
+    return entropy
+
+df["url_entropy"] = df["url"].apply(calculate_entropy)
+
+X= X.drop(columns=["url", "domain_name"], errors="ignore")
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42 , stratify=y)
+
+rf = RandomForestClassifier(n_estimators=100, random_state=42)
+from sklearn.preprocessing import LabelEncoder
+categorical_cols = X.select_dtypes(include=["object"]).columns
+encoder = LabelEncoder()
+for col in categorical_cols:
+    X[col] = encoder.fit_transform(X[col])
+print(X.dtypes)
+
+rf.fit(X_train, y_train)
+
+importances = rf.feature_importances_
+feature_importance_df = pd.DataFrame({"Feature": X.columns, "Importance": importances})
+
+feature_importance_df = feature_importance_df.sort_values(by="Importance", ascending=False)
+
+# Print top features
+print(feature_importance_df)
+plt.figure(figsize=(10, 5))
+sns.barplot(x=feature_importance_df["Importance"], y=feature_importance_df["Feature"])
+plt.title("Feature Importance in Detecting Phishing URLs")
 plt.show()
