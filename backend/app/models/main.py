@@ -87,8 +87,6 @@ def count_digits_in_domain(url):
     domain = urlparse(url).netloc  # Extract domain
     return sum(c.isdigit() for c in domain)
 df["num_digits_in_domain"] = df["url"].apply(count_digits_in_domain)
-X = df.drop(columns=["status"]) # Features
-y = df["status"]# Target variable
 
 from collections import Counter
 import math
@@ -100,18 +98,20 @@ def calculate_entropy(url):
     return entropy
 
 df["url_entropy"] = df["url"].apply(calculate_entropy)
+df["dm_entropy"] = df["domain_name"].apply(calculate_entropy)
 
-X= X.drop(columns=["url", "domain_name"], errors="ignore")
+X = df.drop(columns=["status"]) # Features
+y = df["status"]# Target variable
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42 , stratify=y)
-
-rf = RandomForestClassifier(n_estimators=100, random_state=42)
-from sklearn.preprocessing import LabelEncoder
+X= X.drop(columns=["url", "domain_name", "is_ip" , "https"], errors="ignore")
 categorical_cols = X.select_dtypes(include=["object"]).columns
 encoder = LabelEncoder()
 for col in categorical_cols:
     X[col] = encoder.fit_transform(X[col])
 print(X.dtypes)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42 , stratify=y)
+
+rf = RandomForestClassifier(n_estimators=100, random_state=42)
 
 rf.fit(X_train, y_train)
 
@@ -126,3 +126,4 @@ plt.figure(figsize=(10, 5))
 sns.barplot(x=feature_importance_df["Importance"], y=feature_importance_df["Feature"])
 plt.title("Feature Importance in Detecting Phishing URLs")
 plt.show()
+print(X.columns)
