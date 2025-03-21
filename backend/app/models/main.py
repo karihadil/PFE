@@ -1,9 +1,12 @@
 from cProfile import label
 from ipaddress import ip_address
+from matplotlib import scale
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn import svm
+from sklearn.discriminant_analysis import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.ensemble import RandomForestClassifier
@@ -14,6 +17,9 @@ from ipaddress import ip_address
 from urllib.parse import urlparse
 import tldextract
 import seaborn as sns
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import MinMaxScaler
+
 df = pd.read_csv('C:\\Users\\DELL\\OneDrive\\Bureau\\PFE\\backend\\app\\models\\filtered_dataset.csv')
 df['url_length'] = df['url'].apply(lambda x: len(str(x)))
 def count_special_chars(url):
@@ -110,8 +116,13 @@ for col in categorical_cols:
     X[col] = encoder.fit_transform(X[col])
 print(X.dtypes)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42 , stratify=y)
+scale=MinMaxScaler()
+X_train=scale.fit_transform(X_train)
+X_test=scale.transform(X_test)
+print(X_train.shape)
+print(X_test.shape)
 
-rf = RandomForestClassifier(n_estimators=100, random_state=42)
+rf = RandomForestClassifier(n_estimators=300, random_state=42)
 
 rf.fit(X_train, y_train)
 
@@ -127,3 +138,35 @@ sns.barplot(x=feature_importance_df["Importance"], y=feature_importance_df["Feat
 plt.title("Feature Importance in Detecting Phishing URLs")
 plt.show()
 print(X.columns)
+y_predict=rf.predict(X_test)
+accuracy_score(y_test,y_predict)  
+print(classification_report(y_test,y_predict)) 
+print("svm")
+'''from sklearn.model_selection import GridSearchCV
+
+# Define the parameter grid
+param_grid = {
+    'C': [0.1, 1, 10, 100],
+    'gamma': [0.01, 0.1, 1, 10],
+}
+
+# Create a GridSearchCV object
+grid_search = GridSearchCV(svm.SVC(kernel='rbf'), param_grid, cv=5)
+
+# Fit the model
+grid_search.fit(X_train, y_train)
+
+# Get the best parameters and the best model
+print("Best parameters found: ", grid_search.best_params_)
+best_model = grid_search.best_estimator_
+print(best_model)
+accuracy_score(y_test, best_model.predict(X_test))
+print(classification_report(y_test, best_model.predict(X_test)))'''
+from xgboost import XGBClassifier
+xgb = XGBClassifier(n_estimators=100, random_state=42)
+xgb.fit(X_train, y_train)
+y_predict = xgb.predict(X_test)
+print(f"Accuracy: {accuracy_score(y_test, y_predict)}")
+cv_scores = cross_val_score(rf, X, y, cv=5, scoring='accuracy')
+print(f"Cross-validation scores: {cv_scores}")
+print(f"Mean Cross-validation Accuracy: {cv_scores.mean()}")
