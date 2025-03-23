@@ -1,24 +1,22 @@
-from cProfile import label
-from ipaddress import ip_address
-from matplotlib import scale
+
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn import svm
-from sklearn.discriminant_analysis import StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import StratifiedKFold, cross_val_score
+import math
+from collections import Counter
 import re
-from ipaddress import ip_address
 from urllib.parse import urlparse
 import tldextract
+from sklearn import svm
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from ipaddress import ip_address
+import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import cross_val_score
-from sklearn.preprocessing import MinMaxScaler
+from xgboost import XGBClassifier
+from sklearn.svm import SVC
+
 
 df = pd.read_csv('C:\\Users\\DELL\\OneDrive\\Bureau\\PFE\\backend\\app\\models\\filtered_dataset.csv')
 df['url_length'] = df['url'].apply(lambda x: len(str(x)))
@@ -94,8 +92,6 @@ def count_digits_in_domain(url):
     return sum(c.isdigit() for c in domain)
 df["num_digits_in_domain"] = df["url"].apply(count_digits_in_domain)
 
-from collections import Counter
-import math
 
 def calculate_entropy(url):
     counter = Counter(url)  # Count occurrences of each character
@@ -105,6 +101,7 @@ def calculate_entropy(url):
 
 df["url_entropy"] = df["url"].apply(calculate_entropy)
 df["dm_entropy"] = df["domain_name"].apply(calculate_entropy)
+df.to_csv('filtered_dataset1.csv', index=False)
 
 X = df.drop(columns=["status"]) # Features
 y = df["status"]# Target variable
@@ -115,18 +112,14 @@ encoder = LabelEncoder()
 for col in categorical_cols:
     X[col] = encoder.fit_transform(X[col])
 print(X.dtypes)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42 , stratify=y)
 scale=MinMaxScaler()
-X_train=scale.fit_transform(X_train)
-X_test=scale.transform(X_test)
-print(X_train.shape)
-print(X_test.shape)
+X_scaled=scale.fit_transform(X)
 
-rf = RandomForestClassifier(n_estimators=300, random_state=42)
 
-rf.fit(X_train, y_train)
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42 , stratify=y)
+print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
 
-importances = rf.feature_importances_
+'''importances = rf.feature_importances_
 feature_importance_df = pd.DataFrame({"Feature": X.columns, "Importance": importances})
 
 feature_importance_df = feature_importance_df.sort_values(by="Importance", ascending=False)
@@ -142,31 +135,23 @@ y_predict=rf.predict(X_test)
 accuracy_score(y_test,y_predict)  
 print(classification_report(y_test,y_predict)) 
 print("svm")
-'''from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV
+svm=SVC(C=100, gamma=10, random_state=42)
+svm.fit(X_train, y_train)
+y_predict=svm.predict(X_test)
+print(f"Accuracy: {accuracy_score(y_test, y_predict)}")
+cv_scores = cross_val_score(svm, X, y, cv=5, scoring='accuracy')
+print(f"Cross-validation scores: {cv_scores}")
+print(f"Mean Cross-validation Accuracy: {cv_scores.mean()}")'''
 
-# Define the parameter grid
-param_grid = {
-    'C': [0.1, 1, 10, 100],
-    'gamma': [0.01, 0.1, 1, 10],
-}
 
-# Create a GridSearchCV object
-grid_search = GridSearchCV(svm.SVC(kernel='rbf'), param_grid, cv=5)
-
-# Fit the model
-grid_search.fit(X_train, y_train)
-
-# Get the best parameters and the best model
-print("Best parameters found: ", grid_search.best_params_)
-best_model = grid_search.best_estimator_
-print(best_model)
-accuracy_score(y_test, best_model.predict(X_test))
-print(classification_report(y_test, best_model.predict(X_test)))'''
 from xgboost import XGBClassifier
-xgb = XGBClassifier(n_estimators=100, random_state=42)
+xgb = XGBClassifier(n_estimators=50,  random_state=42)
 xgb.fit(X_train, y_train)
 y_predict = xgb.predict(X_test)
 print(f"Accuracy: {accuracy_score(y_test, y_predict)}")
-cv_scores = cross_val_score(rf, X, y, cv=5, scoring='accuracy')
+cv_scores = cross_val_score(xgb, X, y, cv=5, scoring='accuracy')
 print(f"Cross-validation scores: {cv_scores}")
 print(f"Mean Cross-validation Accuracy: {cv_scores.mean()}")
+print(classification_report(y_test, y_predict))
+print(confusion_matrix(y_test, y_predict))
