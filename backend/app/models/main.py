@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from xgboost import XGBClassifier
 from sklearn.svm import SVC
-
+from sklearn.linear_model import LogisticRegression
 
 df = pd.read_csv('C:\\Users\\DELL\\OneDrive\\Bureau\\PFE\\backend\\app\\models\\filtered_dataset.csv')
 df['url_length'] = df['url'].apply(lambda x: len(str(x)))
@@ -26,7 +26,8 @@ def count_special_chars(url):
 df['special_chars_count'] = df['url'].apply(count_special_chars)
 print(df['special_chars_count'].head())
 df["https"] = df["url"].apply(lambda x: 1 if "https" in x else 0)
-df['domain_name'] = df['url'].apply(lambda x: urlparse(x).netloc)
+df["domain_name"] = df["url"].apply(lambda x: tldextract.extract(x).domain)
+df["domain_len"]  =df["domain_name"].apply(lambda x:len(str(x)))
 def check_ip(url):
     try:
         # Extract hostname from URL
@@ -101,12 +102,12 @@ def calculate_entropy(url):
 
 df["url_entropy"] = df["url"].apply(calculate_entropy)
 df["dm_entropy"] = df["domain_name"].apply(calculate_entropy)
-df.to_csv('filtered_dataset1.csv', index=False)
 
 X = df.drop(columns=["status"]) # Features
 y = df["status"]# Target variable
 
-X= X.drop(columns=["url", "domain_name", "is_ip" , "https"], errors="ignore")
+X= X.drop(columns=["domain_name", "is_ip" , "https"], errors="ignore")
+
 categorical_cols = X.select_dtypes(include=["object"]).columns
 encoder = LabelEncoder()
 for col in categorical_cols:
@@ -119,11 +120,13 @@ X_scaled=scale.fit_transform(X)
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42 , stratify=y)
 print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
 
-'''importances = rf.feature_importances_
+rf=RandomForestClassifier(n_estimators=100, random_state=42)
+rf.fit(X_train, y_train)
+
+importances = rf.feature_importances_
 feature_importance_df = pd.DataFrame({"Feature": X.columns, "Importance": importances})
 
 feature_importance_df = feature_importance_df.sort_values(by="Importance", ascending=False)
-
 # Print top features
 print(feature_importance_df)
 plt.figure(figsize=(10, 5))
@@ -131,27 +134,35 @@ sns.barplot(x=feature_importance_df["Importance"], y=feature_importance_df["Feat
 plt.title("Feature Importance in Detecting Phishing URLs")
 plt.show()
 print(X.columns)
-y_predict=rf.predict(X_test)
-accuracy_score(y_test,y_predict)  
-print(classification_report(y_test,y_predict)) 
-print("svm")
-from sklearn.model_selection import GridSearchCV
-svm=SVC(C=100, gamma=10, random_state=42)
-svm.fit(X_train, y_train)
-y_predict=svm.predict(X_test)
-print(f"Accuracy: {accuracy_score(y_test, y_predict)}")
-cv_scores = cross_val_score(svm, X, y, cv=5, scoring='accuracy')
-print(f"Cross-validation scores: {cv_scores}")
-print(f"Mean Cross-validation Accuracy: {cv_scores.mean()}")'''
+rf_pred=rf.predict(X_test)
+accuracy_score(y_test,rf_pred)  
+print(classification_report(y_test,rf_pred)) 
 
+print("xgggggggggggbbbbbbbbbbbbbbbbbbb")
+import optuna
+best_params = {
+    'n_estimators': 447,
+    'max_depth': 10,
+    'learning_rate': 0.12509164598021782,
+    'min_child_weight': 1,
+    'subsample': 0.9144900383287264,
+    'colsample_bytree': 0.654538382686467,
+    'gamma': 3.734548680958295e-08,
+    'random_state': 42
+}
 
-from xgboost import XGBClassifier
-xgb = XGBClassifier(n_estimators=50,  random_state=42)
+xgb = XGBClassifier(**best_params)
 xgb.fit(X_train, y_train)
-y_predict = xgb.predict(X_test)
-print(f"Accuracy: {accuracy_score(y_test, y_predict)}")
-cv_scores = cross_val_score(xgb, X, y, cv=5, scoring='accuracy')
-print(f"Cross-validation scores: {cv_scores}")
-print(f"Mean Cross-validation Accuracy: {cv_scores.mean()}")
-print(classification_report(y_test, y_predict))
-print(confusion_matrix(y_test, y_predict))
+xgb_pred = xgb.predict(X_test)
+
+accuracy = accuracy_score(y_test, xgb_pred)
+print(f"Final Accuracy with Optimized XGBoost: {accuracy:.4f}")
+
+# Classification Report
+print(classification_report(y_test, xgb_pred))
+final_preds = (xgb_pred + rf_pred) / 2  # Soft voting
+final_preds = np.round(final_preds).astype(int)  # Convert to binary
+
+stacking_accuracy = accuracy_score(y_test, final_preds)
+print(f"blended Model Accuracy: {stacking_accuracy:.4f}")
+
