@@ -17,7 +17,6 @@ import seaborn as sns
 from xgboost import XGBClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
-
 df = pd.read_csv('C:\\Users\\DELL\\OneDrive\\Bureau\\PFE\\backend\\app\\models\\filtered_dataset.csv')
 df['url_length'] = df['url'].apply(lambda x: len(str(x)))
 def count_special_chars(url):
@@ -115,8 +114,6 @@ for col in categorical_cols:
 print(X.dtypes)
 scale=MinMaxScaler()
 X_scaled=scale.fit_transform(X)
-
-
 X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42 , stratify=y)
 print(X_train.shape, X_test.shape, y_train.shape, y_test.shape)
 
@@ -165,4 +162,3 @@ final_preds = np.round(final_preds).astype(int)  # Convert to binary
 
 stacking_accuracy = accuracy_score(y_test, final_preds)
 print(f"blended Model Accuracy: {stacking_accuracy:.4f}")
-
