@@ -129,4 +129,7 @@ xgb_pred=xgb_model.predict(x_test)
 print("XGBoost Classifier")
 print("Accuracy:", accuracy_score(y_test, xgb_pred))
 print("Classification Report:\n", classification_report(y_test, xgb_pred))
-
+import joblib
+# Save the model
+joblib.dump(model, "phishing_model.pkl")
+joblib.dump(encoder, "label_encoder.pkl")
