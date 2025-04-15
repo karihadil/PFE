@@ -74,6 +74,7 @@ selected_columns = [
     
 ]
 filtered_df = df[selected_columns + ["status"]].dropna().drop_duplicates().reset_index(drop=True)
+filtered_df.to_csv("C:\\Users\\DELL\\OneDrive\\Bureau\\PFE\\backend\\app\\models\\dataset_phishing_final.csv", index=False)
 x = filtered_df[selected_columns]
 y = filtered_df["status"]
 print(x.info())
@@ -91,23 +92,21 @@ print("Accuracy:", accuracy_score(y_test, rf_pred))
 print("Classification Report:\n", classification_report(y_test, rf_pred))
 from sklearn.metrics import accuracy_score
 
-# Predict on both train and test sets
+
 y_train_pred = model.predict(x_train)
 y_test_pred = model.predict(x_test)
-
-# Calculate accuracy
 train_accuracy = accuracy_score(y_train, y_train_pred)
 test_accuracy = accuracy_score(y_test, y_test_pred)
 
 print(f"Train Accuracy: {train_accuracy:.4f}")
 print(f"Test Accuracy: {test_accuracy:.4f}")
-# Predict on both train and test sets
+
 y_train_pred = model.predict(x_train)
 y_test_pred = model.predict(x_test)
 cv_scores = cross_val_score(model, x_train, y_train, cv=5, scoring='accuracy')
 mean_train_accuracy = cv_scores.mean()
 
-# Fit and evaluate on test set
+
 model.fit(x_train, y_train)
 y_test_pred = model.predict(x_test)
 test_accuracy = accuracy_score(y_test, y_test_pred)

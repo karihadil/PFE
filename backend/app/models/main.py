@@ -154,11 +154,3 @@ xgb_pred = xgb.predict(X_test)
 
 accuracy = accuracy_score(y_test, xgb_pred)
 print(f"Final Accuracy with Optimized XGBoost: {accuracy:.4f}")
-
-# Classification Report
-print(classification_report(y_test, xgb_pred))
-final_preds = (xgb_pred + rf_pred) / 2  # Soft voting
-final_preds = np.round(final_preds).astype(int)  # Convert to binary
-
-stacking_accuracy = accuracy_score(y_test, final_preds)
-print(f"blended Model Accuracy: {stacking_accuracy:.4f}")
