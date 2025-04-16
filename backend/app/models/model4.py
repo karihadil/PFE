@@ -1,13 +1,19 @@
 from cProfile import label
+from matplotlib.pylab import rand
 import pandas as pd
 import re
 from urllib.parse import urlparse
 import tldextract
 from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split, cross_val_score, learning_curve
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+from xgboost import XGBClassifier
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tld import get_tld
 import os.path
+import numpy as np
 df = pd.read_csv('C:\\Users\\DELL\\OneDrive\\Bureau\\PFE\\backend\\app\\models\\filtered_dataset.csv')
 print(df.head()) 
 print(df.isna().sum())
@@ -20,8 +26,6 @@ plt.ylabel('Density')
 plt.title('Distribution of URL Length by Type')
 plt.show()
 encoder=LabelEncoder()
-df["status_code"]=encoder.fit_transform(df["status"]) #0 legit 1 phishing
-print(df.head())
 # detects if the url contains an ip address
 def abnormal_url(url):
     extracted = tldextract.extract(url)
@@ -75,6 +79,14 @@ df['count-http'] = df['url'].apply(lambda i : i.count('http'))
 df['count%'] = df['url'].apply(lambda i: i.count('%'))
 df['count-'] = df['url'].apply(lambda i: i.count('-'))
 df['count='] = df['url'].apply(lambda i: i.count('='))
+def get_hostname_length(url):
+    try:
+        hostname = urlparse(url).hostname
+        return len(hostname) if hostname else 0
+    except:
+        return 0
+
+df['hostname_len'] = df['url'].apply(get_hostname_length)
 #First Directory Length
 def fd_length(url):
     urlpath= urlparse(url).path
@@ -121,4 +133,84 @@ print(df.isnull().sum())
 print(df.head())
 print(df.tail())
 df.to_csv('C:\\Users\\DELL\\OneDrive\\Bureau\\PFE\\backend\\app\\models\\processed_dataset.csv', index=False)
+print(df.columns.tolist())
+X = df[['url_len', 'abnormal_url', 'count_dot_hostname', 'count-www', 'count@',
+                'special_chars_count', 'https', 'domain_len', 'count_dir', 'short_url',
+                'count-https', 'count-http', 'count%', 'count-', 'count=',
+                'hostname_len', 'fd_length', 'tld_len', 'count-digits', 'count-letters']]
+y = df['status']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy * 100:.2f}%")
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+feature_importances = pd.Series(model.feature_importances_, index=X.columns)
+feature_importances.nlargest(10).plot(kind='barh')
+plt.title("Top 10 Important Features")
+plt.show()
+
+scores = cross_val_score(model, X, y, cv=5)
+print(f"Cross-validated accuracy: {scores.mean()*100:.2f}%")
+
+y_train_pred = model.predict(X_train)
+y_test_pred = model.predict(X_test)
+
+# Accuracies
+train_acc = accuracy_score(y_train, y_train_pred)
+test_acc = accuracy_score(y_test, y_test_pred)
+
+print(f"Train Accuracy: {train_acc * 100:.2f}%")
+print(f"Test Accuracy: {test_acc * 100:.2f}%")
+train_sizes, train_scores, test_scores = learning_curve( # type: ignore
+    model, X, y, cv=5, scoring='accuracy', n_jobs=-1,
+    train_sizes=np.linspace(0.1, 1.0, 10), shuffle=True, random_state=42
+)
+
+train_scores_mean = np.mean(train_scores, axis=1)
+test_scores_mean = np.mean(test_scores, axis=1)
+
+plt.figure(figsize=(8, 5))
+plt.plot(train_sizes, train_scores_mean, label='Training Accuracy', marker='o')
+plt.plot(train_sizes, test_scores_mean, label='Validation Accuracy', marker='s')
+plt.title('Learning Curve')
+plt.xlabel('Training Set Size')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+print('xgggggggggggggggggggggggggggggggggggggggggggggggggggggggggbooooooooooooooossssssssssssttttttttt')
+import warnings
+warnings.filterwarnings("ignore")
+xgb_model = XGBClassifier(eval_metric='logloss', random_state=42)
+xgb_model.fit(X_train, y_train)
+
+# Predict
+y_train_pred = xgb_model.predict(X_train)
+y_test_pred = xgb_model.predict(X_test)
+
+# Accuracy
+train_acc = accuracy_score(y_train, y_train_pred)
+test_acc = accuracy_score(y_test, y_test_pred)
+
+print(f"Train Accuracy: {train_acc * 100:.2f}%")
+print(f"Test Accuracy: {test_acc * 100:.2f}%")
+
+# Classification Report
+print("\nClassification Report (Test Set):")
+print(classification_report(y_test, y_test_pred))
+xgb_cv_scores = cross_val_score(xgb_model, X, y, cv=5, scoring='accuracy')
+print(f"\nCross-validated accuracy: {xgb_cv_scores.mean() * 100:.2f}%")
+import joblib
+
+joblib.dump(model, 'phishing_detector.pkl')
+features = ['url_len', 'abnormal_url', 'count_dot_hostname', 'count-www', 'count@',
+            'special_chars_count', 'https', 'domain_len', 'count_dir', 'short_url',
+            'count-https', 'count-http', 'count%', 'count-', 'count=',
+            'hostname_len', 'fd_length', 'tld_len', 'count-digits', 'count-letters']
+
+joblib.dump(features, 'features.pkl')
 
