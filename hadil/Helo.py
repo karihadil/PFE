@@ -24,7 +24,7 @@ def code(number1:float=Query(... ,gt=20,lt=200),
         number2:float=Query(... ,gt=20,lt=200)):
     bmi=number1/number2
     if number1<number2:
-        message="results: Rahim white - hadil black"
+        message="results: 2"
     else:
-        message="results: still hadil black"
+        message="results: 1"
     return bmioutput(bmi=bmi,message=message)
