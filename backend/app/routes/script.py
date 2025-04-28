@@ -109,8 +109,11 @@ def predict_url(url):
     prediction_label = 'Phishing' if prediction[0] == 1 else 'Legitimate'
     return prediction_label
 
-# Example Usage
 if __name__ == "__main__":
-    url = input("Enter the URL to check: ")
-    result = predict_url(url)
-    print(f"\n✅ The URL is: {result}")
+    url = input("Enter the URL to check: ").strip()
+    if not url:
+        print("❗ No URL entered. Please provide a valid URL.")
+    else:
+        result = predict_url(url)
+        print(f"\n✅ The URL is: {result}")
+        
