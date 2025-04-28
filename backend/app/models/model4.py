@@ -1,12 +1,11 @@
-from cProfile import label
-from matplotlib.pylab import rand
+
 import pandas as pd
 import re
 from urllib.parse import urlparse
 import tldextract
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split, cross_val_score, learning_curve
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from xgboost import XGBClassifier
 import matplotlib.pyplot as plt
@@ -14,6 +13,8 @@ import seaborn as sns
 from tld import get_tld
 import os.path
 import numpy as np
+import math
+from collections import Counter
 df = pd.read_csv('C:\\Users\\DELL\\OneDrive\\Bureau\\PFE\\backend\\app\\models\\filtered_dataset.csv')
 print(df.head()) 
 print(df.isna().sum())
@@ -117,6 +118,18 @@ def letter_count(url):
     return letters
 
 df['count-letters']= df['url'].apply(lambda i: letter_count(i))
+
+def calculate_entropy(url):
+    # Count frequency of each character
+    char_counts = Counter(url)
+    total_chars = len(url)
+    
+    # Shannon entropy formula
+    entropy = -sum((count / total_chars) * math.log2(count / total_chars) for count in char_counts.values())
+    
+    return entropy
+df['url_entropy'] = df['url'].apply(calculate_entropy)
+
 def move_status_to_end(df):
     cols = list(df.columns)
     if 'status' in cols:
@@ -139,6 +152,7 @@ X = df[['url_len', 'abnormal_url', 'count_dot_hostname', 'count-www', 'count@',
                 'count-https', 'count-http', 'count%', 'count-', 'count=',
                 'hostname_len', 'fd_length', 'tld_len', 'count-digits', 'count-letters']]
 y = df['status']
+
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 model = RandomForestClassifier(random_state=42)
 model.fit(X_train, y_train)
@@ -181,36 +195,85 @@ plt.ylabel('Accuracy')
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
-plt.show()
+plt.show() 
 print('xgggggggggggggggggggggggggggggggggggggggggggggggggggggggggbooooooooooooooossssssssssssttttttttt')
 import warnings
 warnings.filterwarnings("ignore")
 xgb_model = XGBClassifier(eval_metric='logloss', random_state=42)
 xgb_model.fit(X_train, y_train)
-
-# Predict
 y_train_pred = xgb_model.predict(X_train)
 y_test_pred = xgb_model.predict(X_test)
+accuracy = accuracy_score(y_test, y_test_pred)
+print(f"Accuracy: {accuracy * 100:.2f}%")
 
-# Accuracy
+train_sizes, train_scores, test_scores = learning_curve( # type: ignore
+    xgb_model, X, y, cv=5, scoring='accuracy', n_jobs=-1,
+    train_sizes=np.linspace(0.1, 1.0, 10), shuffle=True, random_state=42
+)
+
+# Accuracy of trainset and testset
 train_acc = accuracy_score(y_train, y_train_pred)
 test_acc = accuracy_score(y_test, y_test_pred)
 
+# Print accuracies
 print(f"Train Accuracy: {train_acc * 100:.2f}%")
 print(f"Test Accuracy: {test_acc * 100:.2f}%")
+
+train_scores_mean = np.mean(train_scores, axis=1)
+test_scores_mean = np.mean(test_scores, axis=1)
+
+plt.figure(figsize=(8, 5))
+plt.plot(train_sizes, train_scores_mean, label='Training Accuracy', marker='o')
+plt.plot(train_sizes, test_scores_mean, label='Validation Accuracy', marker='s')
+plt.title('Learning Curve - XGBoost Model')
+plt.xlabel('Training Set Size')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
 
 # Classification Report
 print("\nClassification Report (Test Set):")
 print(classification_report(y_test, y_test_pred))
+
 xgb_cv_scores = cross_val_score(xgb_model, X, y, cv=5, scoring='accuracy')
 print(f"\nCross-validated accuracy: {xgb_cv_scores.mean() * 100:.2f}%")
+
 import joblib
 
-joblib.dump(model, 'phishing_detector.pkl')
+joblib.dump(xgb_model, 'phishing_detector_xgb.pkl')
 features = ['url_len', 'abnormal_url', 'count_dot_hostname', 'count-www', 'count@',
             'special_chars_count', 'https', 'domain_len', 'count_dir', 'short_url',
             'count-https', 'count-http', 'count%', 'count-', 'count=',
             'hostname_len', 'fd_length', 'tld_len', 'count-digits', 'count-letters']
 
 joblib.dump(features, 'features.pkl')
+print("fusion model")
+fusion_model = VotingClassifier(estimators=[
+    ('rf', model),
+    ('xgb', xgb_model)
+], voting='soft', n_jobs=-1)
+
+# Train on SMOTE-resampled training set
+fusion_model.fit(X_train, y_train)
+
+# Predict on test set
+y_test_pred = fusion_model.predict(X_test)
+
+# Evaluate
+from sklearn.metrics import accuracy_score, classification_report
+
+accuracy = accuracy_score(y_test, y_test_pred)
+print(f"\n✅ Fusion Model Accuracy: {accuracy * 100:.2f}%")
+
+print("\n🧾 Classification Report (Fusion Model):")
+print(classification_report(y_test, y_test_pred))
+
+# Cross-validation
+from sklearn.model_selection import cross_val_score
+fusion_cv_scores = cross_val_score(fusion_model, X, y, cv=5, scoring='accuracy')
+print(f"📊 Cross-validated accuracy (Fusion Model): {fusion_cv_scores.mean() * 100:.2f}%")
+import joblib
+joblib.dump(fusion_model, 'fusion_model_final.pkl')
 
