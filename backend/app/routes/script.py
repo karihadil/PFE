@@ -98,9 +98,8 @@ def extract_features(url):
         'count-letters': letter_count(url),
     }
 
-# -----------------------------
-# Test URL input and prediction
-# -----------------------------
+
+
 
 def predict_url(url):
     features_dict = extract_features(url)
@@ -116,4 +115,3 @@ if __name__ == "__main__":
     else:
         result = predict_url(url)
         print(f"\n✅ The URL is: {result}")
-        
