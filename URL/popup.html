@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Scanner de Mail</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="popup.js" defer></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      width: 300px;
+      padding: 10px;
+    }
+    h1 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    button {
+      margin-right: 5px;
+      margin-bottom: 10px;
+      padding: 6px 10px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .summary {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .link-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 5px;
+      border-radius: 4px;
+    }
+    .link-item {
+      margin-bottom: 5px;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .safe {
+      background-color: #e6ffed;
+      color: #155724;
+    }
+    .phishing {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <h1>Scanner de Mail</h1>
+  <button id="scanBtn">Scanner</button>
+  <button id="copyBtn">Copier liens suspects</button>
+
+  <div class="summary" id="summary">Résumé : -</div>
+
+  <div class="link-list" id="log">
+    Cliquez sur "Scanner" pour commencer.
+  </div>
+</body>
+</html>
