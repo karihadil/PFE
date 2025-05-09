@@ -15,9 +15,11 @@ import os.path
 import numpy as np
 import math
 from collections import Counter
+
 df = pd.read_csv('C:\\Users\\DELL\\OneDrive\\Bureau\\PFE\\backend\\app\\models\\filtered_dataset.csv')
 print(df.head()) 
 print(df.isna().sum())
+print(df['status'].value_counts())
 df['url_len'] = [len(url) for url in df.url]
 print(df['url_len'].head())
 #the distribution of url length depending on the type of url (legit or phishing)
@@ -102,6 +104,10 @@ def extract_tld(url):
     extracted = tldextract.extract(url) 
     return extracted.suffix  # This gives you the TLD 
 df["tld_len"]= df["url"].apply(lambda x: len(str(extract_tld(x)))) 
+def has_suspicious_words(url):
+    keywords = ['login', 'secure', 'account', 'update', 'free', 'verify', 'password', 'ebayisapi', 'banking', 'signin']
+    return int(any(word in url.lower() for word in keywords))
+df['suspicious_words'] = df['url'].apply(lambda i: has_suspicious_words(i))
 def digit_count(url):
     digits = 0
     for i in url:
@@ -126,9 +132,41 @@ def calculate_entropy(url):
     
     # Shannon entropy formula
     entropy = -sum((count / total_chars) * math.log2(count / total_chars) for count in char_counts.values())
-    
     return entropy
 df['url_entropy'] = df['url'].apply(calculate_entropy)
+def url_path_length(url):
+    return len(urlparse(url).path)
+df['url_path_length'] = df['url'].apply(url_path_length)
+TRUSTED_DOMAINS = {'google.com',
+    'github.com',
+    'wikipedia.org',
+    'apple.com',
+    'linkedin.com',
+    'microsoft.com',
+    'facebook.com',
+    'amazon.com',
+    'paypal.com',
+    'dropbox.com',
+    'youtube.com',
+    'openai.com',
+    'mozilla.org',
+    'cloudflare.com',
+    'netflix.com',
+    'office.com',
+    'whatsapp.com',
+    'zoom.us',
+    'adobe.com',
+    'stackoverflow.com'}
+
+def is_trusted_domain(url):
+    parsed = urlparse(url)
+    hostname = parsed.hostname or ''
+    return any(hostname.endswith(td) for td in TRUSTED_DOMAINS)
+df['trusted_domain'] = df['url'].apply(is_trusted_domain)
+def subdomain_count(url):
+    hostname = urlparse(url).hostname or ''
+    return hostname.count('.') - 1
+df['subdomain_count'] = df['url'].apply(subdomain_count)
 
 def move_status_to_end(df):
     cols = list(df.columns)
@@ -147,10 +185,11 @@ print(df.head())
 print(df.tail())
 df.to_csv('C:\\Users\\DELL\\OneDrive\\Bureau\\PFE\\backend\\app\\models\\processed_dataset.csv', index=False)
 print(df.columns.tolist())
-X = df[['url_len', 'abnormal_url', 'count_dot_hostname', 'count-www', 'count@',
+X = df[['url_len', 'abnormal_url', 'count_dot_hostname', 'count@',
                 'special_chars_count', 'https', 'domain_len', 'count_dir', 'short_url',
                 'count-https', 'count-http', 'count%', 'count-', 'count=',
-                'hostname_len', 'fd_length', 'tld_len', 'count-digits', 'count-letters']]
+                'hostname_len', 'fd_length', 'tld_len', 'count-digits', 'count-letters','trusted_domain','subdomain_count','suspicious_words','url_path_length','url_entropy']]
+
 y = df['status']
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -204,6 +243,8 @@ xgb_model.fit(X_train, y_train)
 y_train_pred = xgb_model.predict(X_train)
 y_test_pred = xgb_model.predict(X_test)
 accuracy = accuracy_score(y_test, y_test_pred)
+importances = pd.Series(xgb_model.feature_importances_, index=X.columns)
+print(importances.sort_values(ascending=False).head(10))
 print(f"Accuracy: {accuracy * 100:.2f}%")
 
 train_sizes, train_scores, test_scores = learning_curve( # type: ignore
@@ -243,10 +284,10 @@ print(f"\nCross-validated accuracy: {xgb_cv_scores.mean() * 100:.2f}%")
 import joblib
 
 joblib.dump(xgb_model, 'phishing_detector_xgb.pkl')
-features = ['url_len', 'abnormal_url', 'count_dot_hostname', 'count-www', 'count@',
-            'special_chars_count', 'https', 'domain_len', 'count_dir', 'short_url',
-            'count-https', 'count-http', 'count%', 'count-', 'count=',
-            'hostname_len', 'fd_length', 'tld_len', 'count-digits', 'count-letters']
+features = ['url_len', 'abnormal_url', 'count_dot_hostname', 'count@',
+                'special_chars_count', 'https', 'domain_len', 'count_dir', 'short_url',
+                'count-https', 'count-http', 'count%', 'count-', 'count=',
+                'hostname_len', 'fd_length', 'tld_len', 'count-digits', 'count-letters','trusted_domain','subdomain_count','suspicious_words','url_path_length','url_entropy']
 
 joblib.dump(features, 'features.pkl')
 print("fusion model")
