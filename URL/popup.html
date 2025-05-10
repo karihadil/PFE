@@ -2,59 +2,119 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Scanner de Mail</title>
+  <title>Phishing Detector</title>
   <link rel="stylesheet" href="style.css">
   <script src="popup.js" defer></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      width: 300px;
-      padding: 10px;
-    }
-    h1 {
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-    button {
-      margin-right: 5px;
-      margin-bottom: 10px;
-      padding: 6px 10px;
-      border: none;
-      background-color: #007bff;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .summary {
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    .link-list {
-      max-height: 200px;
-      overflow-y: auto;
-      border: 1px solid #ccc;
-      padding: 5px;
-      border-radius: 4px;
-    }
-    .link-item {
-      margin-bottom: 5px;
-      padding: 4px;
-      border-radius: 4px;
-    }
-    .safe {
-      background-color: #e6ffed;
-      color: #155724;
-    }
-    .phishing {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-  </style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    width: 320px;
+    padding: 16px;
+    color: #e0f7fa;
+    background: linear-gradient(-45deg, #1c0d0d, #320000, #1c0d0d, #000000);
+    background-size: 300% 300%;
+    animation: redPlasma 10s ease infinite;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+  }
+
+  @keyframes redPlasma {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  h1 {
+    font-size: 20px;
+    text-align: center;
+    color: #ff1744;
+    margin-bottom: 16px;
+    text-shadow: 0 0 5px #ff1744;
+  }
+
+  .button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  button {
+    flex: 1;
+    margin: 0 4px;
+    padding: 8px;
+    font-size: 14px;
+    border: none;
+    background: linear-gradient(to right, #ff003c, #63474d);
+    color: white;
+    border-radius: 5px;
+    border-color: #e0f7fa;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  button:hover {
+    background: linear-gradient(to right, #393d81, #505ead);
+    color: black;
+  }
+
+  .summary {
+    font-weight: bold;
+    font-size: 14px;
+    margin: 10px 0;
+    color: #ffffff;
+  }
+
+  .link-list {
+    max-height: 200px;
+    overflow-y: auto;
+    background: rgba(231, 159, 146, 0.05);
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .link-item {
+    font-size: 13px;
+    padding: 6px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    word-break: break-word;
+  }
+
+  .safe {
+    background-color: #003300;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+  }
+
+  .phishing {
+    background-color: #330000;
+    color: #ff5252;
+    border: 1px solid #d1a9a9;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #ff003c;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+</style>
+
 </head>
 <body>
-  <h1>Scanner de Mail</h1>
-  <button id="scanBtn">Scanner</button>
-  <button id="copyBtn">Copier liens suspects</button>
+  <h1>🚨 PHISHING DETECTOR</h1>
+
+  <div class="button-group">
+    <button id="scanBtn">🔍 Scanner</button>
+    <button id="copyBtn">📋 Copier</button>
+  </div>
 
   <div class="summary" id="summary">Résumé : -</div>
 

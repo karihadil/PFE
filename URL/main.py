@@ -36,10 +36,6 @@ class URLResult(BaseModel):
 
 # ====== Feature Extraction ======
 TRUSTED_DOMAINS = {
-    'google.com', 'github.com', 'wikipedia.org', 'apple.com', 'linkedin.com',
-    'microsoft.com', 'facebook.com', 'amazon.com', 'paypal.com', 'dropbox.com',
-    'youtube.com', 'openai.com', 'mozilla.org', 'cloudflare.com', 'netflix.com',
-    'office.com', 'whatsapp.com', 'zoom.us', 'adobe.com', 'stackoverflow.com'
 }
 
 def abnormal_url(url):
@@ -92,11 +88,6 @@ def calculate_entropy(url):
 def url_path_length(url):
     return len(urlparse(url).path)
 
-def is_trusted_domain(url):
-    parsed = urlparse(url)
-    hostname = parsed.hostname or ''
-    return 1 if any(hostname.endswith(td) for td in TRUSTED_DOMAINS) else 0
-
 def subdomain_count(url):
     hostname = urlparse(url).hostname or ''
     return hostname.count('.') - 1
@@ -104,6 +95,13 @@ def subdomain_count(url):
 def has_suspicious_words(url):
     keywords = ['login', 'secure', 'account', 'update', 'free', 'verify', 'password', 'ebayisapi', 'banking', 'signin']
     return int(any(word in url.lower() for word in keywords))
+def is_trusted_domain(url):
+    parsed = urlparse(url)
+    hostname = parsed.hostname or ''
+    return any(
+        hostname == td or hostname.endswith(f".{td}")
+        for td in TRUSTED_DOMAINS
+    )
 
 def extract_features(url):
     return {

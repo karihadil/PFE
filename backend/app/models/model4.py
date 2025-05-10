@@ -141,6 +141,8 @@ TRUSTED_DOMAINS = {'google.com',
     'github.com',
     'wikipedia.org',
     'apple.com',
+    'icloud.com',
+    'apple.com'
     'linkedin.com',
     'microsoft.com',
     'facebook.com',
@@ -161,7 +163,10 @@ TRUSTED_DOMAINS = {'google.com',
 def is_trusted_domain(url):
     parsed = urlparse(url)
     hostname = parsed.hostname or ''
-    return any(hostname.endswith(td) for td in TRUSTED_DOMAINS)
+    return any(
+        hostname == td or hostname.endswith(f".{td}")
+        for td in TRUSTED_DOMAINS
+    )
 df['trusted_domain'] = df['url'].apply(is_trusted_domain)
 def subdomain_count(url):
     hostname = urlparse(url).hostname or ''

@@ -96,13 +96,18 @@ TRUSTED_DOMAINS = {
     'google.com', 'github.com', 'wikipedia.org', 'apple.com', 'linkedin.com', 'microsoft.com',
     'facebook.com', 'amazon.com', 'paypal.com', 'dropbox.com', 'youtube.com', 'openai.com',
     'mozilla.org', 'cloudflare.com', 'netflix.com', 'office.com', 'whatsapp.com',
-    'zoom.us', 'adobe.com', 'stackoverflow.com'
+    'zoom.us', 'adobe.com', 'stackoverflow.com','icloud.com',
+'apple.com', 'yahoo.com', 'twitter.com', 'instagram.com', 'reddit.com',
 }
 
 def is_trusted_domain(url):
     parsed = urlparse(url)
     hostname = parsed.hostname or ''
-    return 1 if any(hostname.endswith(td) for td in TRUSTED_DOMAINS) else 0
+    return any(
+        hostname == td or hostname.endswith(f".{td}")
+        for td in TRUSTED_DOMAINS
+    )
+
 def subdomain_count(url):
     hostname = urlparse(url).hostname or ''
     return hostname.count('.') - 1

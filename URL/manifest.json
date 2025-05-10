@@ -8,12 +8,17 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "test.png",
-      "48": "test.png",
-      "128": "test.png"
+      "16": "pic.png",
+      "48": "pic.png",
+      "128": "pic.png"
     }
   },
-  "content_scripts": [
+"icons": {
+  "16": "pic.png",
+  "48": "pic.png",
+  "128": "pic.png"
+},
+"content_scripts": [
     {
       "matches": ["https://mail.google.com/*"],
       "js": ["content.js"],
