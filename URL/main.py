@@ -10,15 +10,16 @@ import tldextract
 import re
 from collections import Counter
 
-# Load the saved model and features
-xgb_model = joblib.load('phishing_detector_xgb.pkl')
-features = joblib.load('features.pkl')
+# ====== Load Updated Model and Features ======
+xgb_model = joblib.load('phishingxgb.pkl')
+features = joblib.load('features_list.pkl')
 
+# ====== FastAPI Setup ======
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "chrome-extension://ifbhjmmbmgoomddjcbimegfciahkldng",
+        "chrome-extension://bfcjiigpkmcpimmhegkaaiidneieiklp",
         "https://mail.google.com"
     ],
     allow_credentials=True,
@@ -33,7 +34,14 @@ class URLResult(BaseModel):
     url: str
     prediction: str  # 'Phishing' or 'Legitimate'
 
-# Feature extraction functions
+# ====== Feature Extraction ======
+TRUSTED_DOMAINS = {
+    'google.com', 'github.com', 'wikipedia.org', 'apple.com', 'linkedin.com',
+    'microsoft.com', 'facebook.com', 'amazon.com', 'paypal.com', 'dropbox.com',
+    'youtube.com', 'openai.com', 'mozilla.org', 'cloudflare.com', 'netflix.com',
+    'office.com', 'whatsapp.com', 'zoom.us', 'adobe.com', 'stackoverflow.com'
+}
+
 def abnormal_url(url):
     extracted = tldextract.extract(url)
     domain = f"{extracted.domain}.{extracted.suffix}"
@@ -76,12 +84,32 @@ def digit_count(url):
 def letter_count(url):
     return sum(c.isalpha() for c in url)
 
+def calculate_entropy(url):
+    char_counts = Counter(url)
+    total_chars = len(url)
+    return -sum((count / total_chars) * math.log2(count / total_chars) for count in char_counts.values())
+
+def url_path_length(url):
+    return len(urlparse(url).path)
+
+def is_trusted_domain(url):
+    parsed = urlparse(url)
+    hostname = parsed.hostname or ''
+    return 1 if any(hostname.endswith(td) for td in TRUSTED_DOMAINS) else 0
+
+def subdomain_count(url):
+    hostname = urlparse(url).hostname or ''
+    return hostname.count('.') - 1
+
+def has_suspicious_words(url):
+    keywords = ['login', 'secure', 'account', 'update', 'free', 'verify', 'password', 'ebayisapi', 'banking', 'signin']
+    return int(any(word in url.lower() for word in keywords))
+
 def extract_features(url):
     return {
         'url_len': len(url),
         'abnormal_url': abnormal_url(url),
         'count_dot_hostname': dot_count_hostname(url),
-        'count-www': url.count('www'),
         'count@': url.count('@'),
         'special_chars_count': count_special_chars(url),
         'https': 1 if 'https' in url else 0,
@@ -98,15 +126,21 @@ def extract_features(url):
         'tld_len': len(str(extract_tld(url))),
         'count-digits': digit_count(url),
         'count-letters': letter_count(url),
+        'trusted_domain': is_trusted_domain(url),
+        'subdomain_count': subdomain_count(url),
+        'suspicious_words': has_suspicious_words(url),
+        'url_path_length': url_path_length(url),
+        'url_entropy': calculate_entropy(url)
     }
 
+# ====== Prediction Endpoint ======
 @app.post("/predict")
 async def predict_phishing(request: URLRequest):
     results = []
     for url in request.urls:
         features_dict = extract_features(url)
-        features_df = pd.DataFrame([features_dict])
+        features_df = pd.DataFrame([features_dict])[features]
         prediction = xgb_model.predict(features_df)[0]
-        prediction_label = 'Phishing' if prediction == 1 else 'Legitimate'
-        results.append(URLResult(url=url, prediction=prediction_label))
+        label = "Phishing" if prediction == 1 else "Legitimate"
+        results.append(URLResult(url=url, prediction=label))
     return {"results": results}

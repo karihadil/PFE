@@ -283,13 +283,13 @@ print(f"\nCross-validated accuracy: {xgb_cv_scores.mean() * 100:.2f}%")
 
 import joblib
 
-joblib.dump(xgb_model, 'phishing_detector_xgb.pkl')
+joblib.dump(xgb_model, 'phishingxgb.pkl')
 features = ['url_len', 'abnormal_url', 'count_dot_hostname', 'count@',
                 'special_chars_count', 'https', 'domain_len', 'count_dir', 'short_url',
                 'count-https', 'count-http', 'count%', 'count-', 'count=',
                 'hostname_len', 'fd_length', 'tld_len', 'count-digits', 'count-letters','trusted_domain','subdomain_count','suspicious_words','url_path_length','url_entropy']
 
-joblib.dump(features, 'features.pkl')
+joblib.dump(features, 'features_list.pkl')
 print("fusion model")
 fusion_model = VotingClassifier(estimators=[
     ('rf', model),
