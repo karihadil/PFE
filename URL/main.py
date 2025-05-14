@@ -9,18 +9,20 @@ from urllib.parse import urlparse
 import tldextract
 import re
 from collections import Counter
+import httpx
+import asyncio
 
-# ====== Load Updated Model and Features ======
-xgb_model = joblib.load('phishingxgb.pkl')
-features = joblib.load('features_list.pkl')
+# === Load Model and Features ===
+xgb_model = joblib.load("phishing_detector_xgb.pkl")
+features = joblib.load("features.pkl")
 
-# ====== FastAPI Setup ======
+# === FastAPI Setup ===
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "chrome-extension://bfcjiigpkmcpimmhegkaaiidneieiklp",
-        "https://mail.google.com"
+        "https://mail.google.com",
+        "chrome-extension://ifbhjmmbmgoomddjcbimegfciahkldng"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -30,117 +32,106 @@ app.add_middleware(
 class URLRequest(BaseModel):
     urls: List[str]
 
-class URLResult(BaseModel):
-    url: str
-    prediction: str  # 'Phishing' or 'Legitimate'
-
-# ====== Feature Extraction ======
+# === Trusted Domains and Keywords ===
 TRUSTED_DOMAINS = {
-    'google.com', 'github.com', 'wikipedia.org', 'apple.com', 'linkedin.com',
-    'microsoft.com', 'facebook.com', 'amazon.com', 'paypal.com', 'dropbox.com',
-    'youtube.com', 'openai.com', 'mozilla.org', 'cloudflare.com', 'netflix.com',
-    'office.com', 'whatsapp.com', 'zoom.us', 'adobe.com', 'stackoverflow.com'
+    'google.com', 'github.com', 'apple.com', 'linkedin.com', 'paypal.com',
+    'dropbox.com', 'youtube.com', 'openai.com', 'cloudflare.com', 'netflix.com',
+    'microsoft.com', 'facebook.com', 'stackoverflow.com'
 }
+SUSPICIOUS_KEYWORDS = [
+    'login', 'secure', 'account', 'update', 'free', 'verify', 'password',
+    'ebayisapi', 'banking', 'signin'
+]
 
-def abnormal_url(url):
-    extracted = tldextract.extract(url)
-    domain = f"{extracted.domain}.{extracted.suffix}"
-    return 1 if domain not in url else 0
+GOOGLE_API_KEY = "AIzaSyBlIx-aWXKXyQ-tAGHsEOwtZexmb5AufTs"
 
-def dot_count_hostname(url):
-    hostname = urlparse(url).hostname
-    return hostname.count('.') if hostname else 0
-
-def count_special_chars(url):
-    special_chars = "@-_%=&?"
-    return sum(url.count(char) for char in special_chars)
-
-def no_of_dir(url):
-    return urlparse(url).path.count('/')
-
-def shortening_service(url):
-    domain = urlparse(url).netloc
-    match = re.search(r'bit\.ly|goo\.gl|tinyurl|ow\.ly|t\.co', domain)
-    return 1 if match else 0
-
-def get_hostname_length(url):
-    hostname = urlparse(url).hostname
-    return len(hostname) if hostname else 0
-
-def fd_length(url):
-    urlpath = urlparse(url).path
+async def check_google_safe_browsing(url):
+    endpoint = "https://safebrowsing.googleapis.com/v4/threatMatches:find"
+    body = {
+        "client": {"clientId": "phishing-detector", "clientVersion": "1.0"},
+        "threatInfo": {
+            "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE"],
+            "platformTypes": ["ANY_PLATFORM"],
+            "threatEntryTypes": ["URL"],
+            "threatEntries": [{"url": url}]
+        }
+    }
+    params = {"key": GOOGLE_API_KEY}
     try:
-        return len(urlpath.split('/')[1])
-    except:
-        return 0
-
-def extract_tld(url):
-    extracted = tldextract.extract(url)
-    return extracted.suffix
-
-def digit_count(url):
-    return sum(c.isdigit() for c in url)
-
-def letter_count(url):
-    return sum(c.isalpha() for c in url)
-
-def calculate_entropy(url):
-    char_counts = Counter(url)
-    total_chars = len(url)
-    return -sum((count / total_chars) * math.log2(count / total_chars) for count in char_counts.values())
-
-def url_path_length(url):
-    return len(urlparse(url).path)
-
-def is_trusted_domain(url):
-    parsed = urlparse(url)
-    hostname = parsed.hostname or ''
-    return 1 if any(hostname.endswith(td) for td in TRUSTED_DOMAINS) else 0
-
-def subdomain_count(url):
-    hostname = urlparse(url).hostname or ''
-    return hostname.count('.') - 1
-
-def has_suspicious_words(url):
-    keywords = ['login', 'secure', 'account', 'update', 'free', 'verify', 'password', 'ebayisapi', 'banking', 'signin']
-    return int(any(word in url.lower() for word in keywords))
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            response = await client.post(endpoint, params=params, json=body)
+            result = response.json()
+            return bool(result.get("matches"))
+    except Exception as e:
+        print(f"[ERROR] GSB check failed: {e}")
+        return False
 
 def extract_features(url):
+    parsed = urlparse(url)
+    hostname = parsed.hostname or ''
+    path = parsed.path
+    ext = tldextract.extract(url)
     return {
         'url_len': len(url),
-        'abnormal_url': abnormal_url(url),
-        'count_dot_hostname': dot_count_hostname(url),
+        'abnormal_url': 0 if ext.domain in url else 1,
+        'count_dot_hostname': hostname.count('.'),
         'count@': url.count('@'),
-        'special_chars_count': count_special_chars(url),
-        'https': 1 if 'https' in url else 0,
-        'domain_len': len(tldextract.extract(url).domain),
-        'count_dir': no_of_dir(url),
-        'short_url': shortening_service(url),
+        'special_chars_count': sum(url.count(c) for c in "@-_%=&?"),
+        'https': int('https' in url.lower()),
+        'domain_len': len(ext.domain),
+        'count_dir': path.count('/'),
+        'short_url': int(bool(re.search(r'bit\\.ly|goo\\.gl|tinyurl|ow\\.ly|t\\.co', hostname))),
         'count-https': url.count('https'),
         'count-http': url.count('http'),
         'count%': url.count('%'),
         'count-': url.count('-'),
         'count=': url.count('='),
-        'hostname_len': get_hostname_length(url),
-        'fd_length': fd_length(url),
-        'tld_len': len(str(extract_tld(url))),
-        'count-digits': digit_count(url),
-        'count-letters': letter_count(url),
-        'trusted_domain': is_trusted_domain(url),
-        'subdomain_count': subdomain_count(url),
-        'suspicious_words': has_suspicious_words(url),
-        'url_path_length': url_path_length(url),
-        'url_entropy': calculate_entropy(url)
+        'hostname_len': len(hostname),
+        'fd_length': len(path.split('/')[1]) if len(path.split('/')) > 1 else 0,
+        'tld_len': len(ext.suffix),
+        'count-digits': sum(c.isdigit() for c in url),
+        'count-letters': sum(c.isalpha() for c in url),
+        'trusted_domain': int(any(hostname.endswith(td) for td in TRUSTED_DOMAINS)),
+        'subdomain_count': hostname.count('.') - 1,
+        'suspicious_words': int(any(k in url.lower() for k in SUSPICIOUS_KEYWORDS)),
+        'url_path_length': len(path),
+        'url_entropy': -sum((c / len(url)) * math.log2(c / len(url)) for c in Counter(url).values() if c > 0)
     }
 
-# ====== Prediction Endpoint ======
 @app.post("/predict")
-async def predict_phishing(request: URLRequest):
+async def predict(request: URLRequest):
+    urls = request.urls
     results = []
-    for url in request.urls:
-        features_dict = extract_features(url)
-        features_df = pd.DataFrame([features_dict])[features]
-        prediction = xgb_model.predict(features_df)[0]
-        label = "Phishing" if prediction == 1 else "Legitimate"
-        results.append(URLResult(url=url, prediction=label))
+
+    async def analyze_url(url):
+        feat = extract_features(url)
+        df = pd.DataFrame([feat])[features]
+
+        xgb_proba = xgb_model.predict_proba(df)[0]
+        phishing_conf = xgb_proba[1]
+        xgb_pred = 1 if phishing_conf >= 0.5 else 0
+
+        google_flagged = await check_google_safe_browsing(url)
+
+        if google_flagged:
+            final_label = "Phishing (⚠️ Flagged by Google Safe Browsing)"
+        elif xgb_pred == 1:
+            if phishing_conf >= 0.65:
+                final_label = "Phishing (High Confidence)"
+            else:
+                final_label = "Suspicious (Low Confidence)"
+        else:
+            final_label = "Legitimate"
+
+        return {
+            "url": url,
+            "xgb": {
+                "label": "Phishing" if xgb_pred else "Legitimate",
+                "confidence": float(round(phishing_conf, 2))
+            },
+            "google": google_flagged,
+            "final_label": final_label
+        }
+
+    results = await asyncio.gather(*(analyze_url(url) for url in urls))
     return {"results": results}

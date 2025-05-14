@@ -1,65 +1,60 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Scanner de Mail</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="popup.js" defer></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      width: 300px;
-      padding: 10px;
-    }
-    h1 {
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-    button {
-      margin-right: 5px;
-      margin-bottom: 10px;
-      padding: 6px 10px;
-      border: none;
-      background-color: #007bff;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .summary {
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    .link-list {
-      max-height: 200px;
-      overflow-y: auto;
-      border: 1px solid #ccc;
-      padding: 5px;
-      border-radius: 4px;
-    }
-    .link-item {
-      margin-bottom: 5px;
-      padding: 4px;
-      border-radius: 4px;
-    }
-    .safe {
-      background-color: #e6ffed;
-      color: #155724;
-    }
-    .phishing {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PhishGuard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h1>Scanner de Mail</h1>
-  <button id="scanBtn">Scanner</button>
-  <button id="copyBtn">Copier liens suspects</button>
+  <div class="popup">
+    <div class="header">
+      <h1>PhishGuard</h1>
+      <span class="status-tag">Protected</span>
+    </div>
 
-  <div class="summary" id="summary">Résumé : -</div>
+    <div class="toggle-tabs">
+      <div class="tab" id="scanBtn">🔎 Scan Gmail</div>
+      <div class="tab" id="copyBtn">📋 Copy Links</div>
+    </div>
 
-  <div class="link-list" id="log">
-    Cliquez sur "Scanner" pour commencer.
+    <div class="loading-spinner hidden" id="loader"></div>
+
+    <div class="scan-card green hidden" id="card-trusted">
+      <div class="scan-title">🟢 Trusted Site <span>▾</span></div>
+      <div class="scan-details">This link is verified and comes from a known safe provider.</div>
+    </div>
+
+    <div class="scan-card orange hidden" id="card-suspicious">
+      <div class="scan-title">🟠 Suspicious Domain <span>▾</span></div>
+      <div class="scan-details">Domain has moderate risk based on model confidence.</div>
+    </div>
+
+    <div class="scan-card red hidden" id="card-malicious">
+      <div class="scan-title">🔴 High Confidence Threat <span>▾</span></div>
+      <div class="scan-details">Detected as phishing with high model confidence.</div>
+    </div>
+
+    <div class="scan-card" id="summary">No scan yet.</div>
+    <div id="log" class="result-list"></div>
+
+    <div class="footer">
+      <div class="footer-btn" id="report-btn">🚨 Report</div>
+      <div class="footer-btn" id="about-btn">ℹ️ About</div>
+      <div class="footer-btn" id="close-btn">❌ Close</div>
+    </div>
+
+    <div id="aboutModal" class="about-modal">
+      <div class="modal-close" id="modal-close">✖</div>
+      <h2>🔐 PhishGuard</h2>
+      <p>Version: 1.0.0</p>
+      <p>Built to help you stay protected while browsing and reading emails.</p>
+      <a href="#" style="color: #3b82f6; text-decoration: underline;">Acknowledgements</a>
+      <small>© 2025, PhishGuard Labs. All rights reserved.</small>
+    </div>
   </div>
+
+  <script src="popup.js"></script>
 </body>
 </html>

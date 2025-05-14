@@ -1,0 +1,242 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  height: 100vh;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-right: 1rem;
+  overflow: hidden;
+  color: #f1f5f9;
+}
+
+.hidden {
+  display: none;
+}
+
+.popup {
+  width: 360px;
+  background: rgba(30, 41, 59, 0.75);
+  backdrop-filter: blur(16px);
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  padding: 1.5rem;
+  animation: fadeSlideIn 0.6s ease forwards;
+  transform: translateY(20px);
+  opacity: 0;
+  position: relative;
+}
+
+@keyframes fadeSlideIn {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+}
+
+.header h1 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  background: linear-gradient(to right, #38bdf8, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from { text-shadow: 0 0 4px #38bdf8; }
+  to { text-shadow: 0 0 12px #6366f1; }
+}
+
+.status-tag {
+  background: #10b981;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+}
+
+.toggle-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  font-size: 0.85rem;
+  background: linear-gradient(to right, #3b82f6, #06b6d4);
+  padding: 0.6rem;
+  border-radius: 10px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.tab:hover {
+  transform: scale(1.05);
+}
+
+.loading-spinner {
+  border: 4px solid #3b82f6;
+  border-top: 4px solid transparent;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  animation: spin 1s linear infinite;
+  margin: 1rem auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.scan-card {
+  background: #1e40af33;
+  border-left: 4px solid #7dd3fc;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  color: #f1f5f9;
+  font-size: 0.9rem;
+}
+
+.result-list {
+  font-size: 0.8rem;
+  max-height: 200px;
+  overflow-y: auto;
+  border-top: 1px solid #334155;
+  padding-top: 10px;
+}
+
+.link-item {
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: #1e293b;
+  transition: all 0.3s ease;
+  border-left: 4px solid #3b82f6;
+}
+
+.link-item.safe {
+  border-left-color: #10b981;
+  color: #a7f3d0;
+  background: #052e16;
+}
+
+.link-item.phishing {
+  border-left-color: #ef4444;
+  color: #fecaca;
+  background: #450a0a;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 1.5rem;
+}
+
+.footer-btn {
+  background: #334155;
+  color: #f1f5f9;
+  border-radius: 12px;
+  padding: 0.65rem 1rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.footer-btn:hover {
+  background: #475569;
+}
+
+.about-modal {
+  position: fixed;
+  top: 1rem;
+  right: -400px;
+  width: 320px;
+  background: white;
+  color: #111827;
+  border-radius: 20px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  padding: 1.2rem;
+  font-size: 0.85rem;
+  z-index: 999;
+  transition: right 0.3s ease-in-out;
+}
+
+.about-modal.active {
+  right: 1rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 18px;
+  color: #6b7280;
+  cursor: pointer;
+}
+.scan-card {
+  background: #1e40af33;
+  border-left: 4px solid #7dd3fc;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  color: #f1f5f9;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+/* 🔴 Malware */
+.scan-card.red {
+  background: #450a0a;
+  border-left-color: #ef4444;
+  color: #fecaca;
+}
+
+/* 🟠 Suspicious */
+.scan-card.orange {
+  background: #4b3a04;
+  border-left-color: #f59e0b;
+  color: #fde68a;
+}
+
+/* 🟢 Trusted */
+.scan-card.green {
+  background: #052e16;
+  border-left-color: #10b981;
+  color: #a7f3d0;
+}
+
+.scan-title {
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.scan-details {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+}
+.link-item.suspicious {
+  background-color: #4b3a04;
+  border-left: 5px solid #f59e0b;
+  color: #ffbb00;
+}

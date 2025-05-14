@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Gmail Phishing Scanner",
+  "name": "PhishGuard",
   "version": "1.0",
-  "description": "Scan an opened Gmail email for phishing URLs.",
+  "description": "Detects phishing links in Gmail.",
   "permissions": ["scripting", "activeTab"],
   "host_permissions": ["https://mail.google.com/*"],
   "action": {
@@ -12,12 +12,5 @@
       "48": "test.png",
       "128": "test.png"
     }
-  },
-  "content_scripts": [
-    {
-      "matches": ["https://mail.google.com/*"],
-      "js": ["content.js"],
-      "run_at": "document_idle"
-    }
-  ]
+  }
 }
